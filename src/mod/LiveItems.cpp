@@ -1,6 +1,10 @@
 #include "mod/LiveItems.h"
 
 #include "mc/deps/nbt/ListTag.h"
+#include "mc/network/MinecraftPacketIds.h"
+#include "mc/network/MinecraftPackets.h"
+#include "mc/network/packet/PlayerHotbarPacket.h"
+#include "mc/world/ContainerID.h"
 #include "mc/deps/shared_types/legacy/actor/ArmorSlot.h"
 #include "mc/world/Container.h"
 #include "mc/world/actor/player/Inventory.h"
@@ -53,6 +57,23 @@ void applyItems(Player& player, CompoundTag const& shared) {
         auto const& list = shared.at("Offhand").get<ListTag>();
         auto const* item = list.empty() ? nullptr : compound(list.front());
         player.setOffhandSlot(item ? ItemStack::fromTag(*item) : ItemStack::EMPTY_ITEM());
+    }
+    if (shared.contains("SelectedInventorySlot")) {
+        auto const& v    = shared.at("SelectedInventorySlot");
+        int         slot = v.hold(Tag::Type::Int) ? v.get<IntTag>().data
+                         : v.hold(Tag::Type::Byte) ? static_cast<unsigned char>(v.get<ByteTag>().data)
+                                                   : -1;
+        if (slot >= 0 && slot < 9) {
+            player.setSelectedSlot(slot);
+            if (auto packet = std::static_pointer_cast<PlayerHotbarPacket>(
+                    MinecraftPackets::createPacket(MinecraftPacketIds::PlayerHotbar)
+                )) {
+                packet->mSelectedSlot     = static_cast<uint>(slot);
+                packet->mShouldSelectSlot = true;
+                packet->mContainerId      = ContainerID::Inventory;
+                packet->sendTo(player);
+            }
+        }
     }
     player.sendInventory(true);
 }

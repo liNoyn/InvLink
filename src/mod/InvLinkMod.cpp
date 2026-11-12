@@ -1,4 +1,4 @@
-// InvLink: shares inventory, armour, offhand, ender chest, experience, health, hunger and effects between linked
+// InvLink: shares inventory, armour, offhand, the selected hotbar slot, ender chest and experience between linked
 // LeviLamina servers through a shared folder. See README.md.
 //
 // - Joining: the hook on LevelStorage::loadServerPlayerData puts the newest shared data into the data BDS just read

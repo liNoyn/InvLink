@@ -7,12 +7,22 @@ No proxy plugin is needed: the servers only share a folder.
 
 ## What is shared
 
-| Shared | Stays per server |
-|---|---|
-| Inventory, armour, offhand, ender chest (enchantments, names, shulker box contents and everything else kept as is) | Position, dimension, spawn point |
-| Experience (levels) | Game mode, permissions |
-| Health, hunger, saturation, absorption | Recipes and the other attributes (movement speed, …) |
-| Potion effects | |
+```
+Shared
+├─ Inventory 0-35
+├─ Helmet
+├─ Chestplate
+├─ Leggings
+├─ Boots
+├─ Offhand
+├─ Selected hotbar slot
+├─ Ender Chest 0-26
+└─ Experience
+   └─ Total XP
+```
+
+Items are copied as they are: enchantments, names, durability, shulker box contents and everything else.
+Everything else stays per server: position, dimension, spawn point, game mode, permissions, health, hunger, potion effects, recipes and so on.
 
 ## How it works
 
@@ -76,7 +86,7 @@ The mod is written to `bin/InvLink/`.
 
 On two local servers (BDS 1.26.60.6 + LeviLamina 26.60.0) with a test client and a real client:
 
-- items, armour, offhand, ender chest and experience carried over in both directions
+- inventory, all four armour pieces, offhand, ender chest and experience carried over in both directions; health and effects were not in the shared data
 - leaving one server and joining the other at once: saved on leaving, loaded on joining
 - joining the second server while still online on the first: refused with the message, no duplicate
 - the first-time backup was written

@@ -18,7 +18,7 @@ end
 
 target("InvLink")
     add_rules("@levibuildscript/linkrule")
-    add_rules("@levibuildscript/modpacker", {modVersion = "0.1.0"})
+    add_rules("@levibuildscript/modpacker", {modVersion = "0.2.0"})
     if is_plat("windows") then
         add_defines("NOMINMAX", "UNICODE", "_HAS_CXX23=1")
         set_exceptions("none") -- do not conflict with /EHa
