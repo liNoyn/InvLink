@@ -44,4 +44,6 @@ target("InvLink")
     set_symbols("debug")
     add_headerfiles("src/**.h")
     add_files("src/**.cpp")
+    -- Embed only the file name of the .pdb, not the full local build path.
+    add_shflags("/PDBALTPATH:%_PDB%", {force = true})
     add_includedirs("src")
