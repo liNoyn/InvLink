@@ -22,6 +22,7 @@ enum class Msg {
     ReadFailed,
     SaveFailed,
     Kick,
+    NotSavedAtStop,
     Count_
 };
 
@@ -88,6 +89,10 @@ inline std::string_view text(Lang lang, Msg msg) {
         {"Your items are still being saved on the server you left. Please wait a few seconds and join again.",
          "前のサーバーで持ち物の保存が終わっていません。数秒待ってから、もう一度入ってください。",
          "你的物品仍在上一个服务器保存中。请等待几秒后重新进入。"},
+        // NotSavedAtStop
+        {"{} player(s) could not be saved before the server stopped; they will start from the last regular save.",
+         "止まる前に保存できなかった人が {} 人います。次は最後の定期保存から始めます。",
+         "服务器停止前有 {} 名玩家未能保存，下次将从最后一次定期保存开始。"},
     }};
     return table[static_cast<std::size_t>(msg)][static_cast<std::size_t>(lang)];
 }

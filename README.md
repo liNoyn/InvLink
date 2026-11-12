@@ -30,6 +30,7 @@ Everything else stays per server: position, dimension, spawn point, game mode, p
 - **Joining**: InvLink hooks the moment BDS reads the player's data from its world (`LevelStorage::loadServerPlayerData`) and puts the shared data in before the player is created, so the client receives the right inventory from the start. The server becomes the owner.
 - **Playing**: saved every `saveSeconds` (default 60) in case the server crashes.
 - **Leaving** (quit, kick, `/transfer` to another server, …): saved and released at once, so the next server can take it.
+- **Stopping the server**: everyone online is saved and released when the `stop` command runs. If the server stops any other way (crash, killed process), the last regular save is used.
 - **Never duplicated**: while another server still owns the data and is running, a player who joins is asked to wait a few seconds and join again. If that server stopped without releasing, the last save is used (it may go back a little, never duplicate).
 - **Backups**: when a server first replaces a player's own items with the shared ones, it keeps its old copy once in `backup/<server>/<uuid>.nbt`. Older versions of the shared data are kept in `players/<uuid>.history/` (`keepHistory`, default 20).
 - Every file is written to a temporary file first and then renamed, so a reader never sees half a file.

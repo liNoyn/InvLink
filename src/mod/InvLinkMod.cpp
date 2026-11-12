@@ -9,12 +9,14 @@
 //   join again in a few seconds. If that server stopped, the last save is used.
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include <fmt/format.h>
@@ -24,6 +26,7 @@
 #include "ll/api/event/ListenerBase.h"
 #include "ll/api/event/player/PlayerDisconnectEvent.h"
 #include "ll/api/event/player/PlayerJoinEvent.h"
+#include "ll/api/event/command/ExecuteCommandEvent.h"
 #include "ll/api/event/server/ServerStoppingEvent.h"
 #include "ll/api/event/world/ServerLevelTickEvent.h"
 #include "ll/api/memory/Hook.h"
@@ -87,6 +90,7 @@ private:
     void onTick();
     void saveOwned(Player& player, bool release);
     void releaseAll();
+    static bool isStopCommand(std::string_view command);
     bool readConfig();
 
     ll::mod::NativeMod&                          mSelf;
@@ -97,7 +101,7 @@ private:
     std::set<std::string>                        mBlocked; // uuids that may not stay (record held elsewhere, or broken)
     std::unordered_map<std::string, std::string> mPending; // uuid -> shared NBT to apply after joining
     std::set<std::string>                        mNew;     // uuids without any record yet (first time anywhere)
-    ll::event::ListenerPtr                       mJoin, mLeave, mTick, mStopping;
+    ll::event::ListenerPtr                       mJoin, mLeave, mTick, mStopCommand, mStopping;
     std::uint64_t                                mTicks = 0;
     DefaultDataLoadHelper                        mHelper;
 };
@@ -183,16 +187,26 @@ bool InvLinkMod::enable() {
         onLeave(e.self());
     });
     mTick     = bus.emplaceListener<ll::event::ServerLevelTickEvent>([this](ll::event::ServerLevelTickEvent&) { onTick(); });
-    mStopping = bus.emplaceListener<ll::event::ServerStoppingEvent>([this](ll::event::ServerStoppingEvent&) { releaseAll(); });
+    // Saving a player once the server is stopping crashes BDS (Player::save inside ServerStoppingEvent), and the mod is
+    // disabled before the players are disconnected. So everyone is saved and released when the "stop" command arrives,
+    // while everything still runs. A stop without the command (crash, killed process) keeps the last regular save: the
+    // next server waits until this one's heartbeat is old, then starts from that save (may go back, never duplicates).
+    mStopCommand = bus.emplaceListener<ll::event::ExecutingCommandEvent>([this](ll::event::ExecutingCommandEvent& e) {
+        if (isStopCommand(e.commandContext().mCommand)) releaseAll();
+    });
+    mStopping = bus.emplaceListener<ll::event::ServerStoppingEvent>([this](ll::event::ServerStoppingEvent&) {
+        if (!mOwned.empty()) getSelf().getLogger().warn("{}", say(Msg::NotSavedAtStop, mOwned.size()));
+    });
     mStore->heartbeat(nowMs());
     return true;
 }
 
 bool InvLinkMod::disable() {
-    if (mStore) releaseAll();
+    // no saving here: when the server stops, this runs after the stopping event, where saving a player crashes
     mJoin.reset();
     mLeave.reset();
     mTick.reset();
+    mStopCommand.reset();
     mStopping.reset();
     return true;
 }
@@ -319,6 +333,13 @@ void InvLinkMod::onTick() {
             });
         }
     }
+}
+
+bool InvLinkMod::isStopCommand(std::string_view command) {
+    while (!command.empty() && (command.front() == ' ' || command.front() == '/')) command.remove_prefix(1);
+    while (!command.empty() && command.back() == ' ') command.remove_suffix(1);
+    return command.size() == 4 && std::tolower(command[0]) == 's' && std::tolower(command[1]) == 't'
+        && std::tolower(command[2]) == 'o' && std::tolower(command[3]) == 'p';
 }
 
 void InvLinkMod::releaseAll() {
